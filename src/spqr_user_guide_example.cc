@@ -6,57 +6,6 @@
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
-constexpr bool kLoadKouroshMatrix = true;
-
-template<typename T>
-void ReadBinary(std::istream& is, std::vector<T>& v)
-{
-  std::uint64_t sz;
-  is.read(reinterpret_cast<char*>(&sz), sizeof(sz));
-  v.resize(sz);
-  is.read(reinterpret_cast<char*>(v.data()), sizeof(T) * sz);
-}
-
-
-cholmod_sparse* LoadKouroshMatrix(
-    const std::string& filename, cholmod_common& cc) {
-  std::ifstream file(filename);
-  std::vector<std::uint64_t> rows, cols;
-  std::vector<double> vals;
-  size_t num_rows, num_cols, nnz;
-
-  if (!file.is_open()) {
-    LOG(FATAL) << "(ReadSparseMatrix) Unable to open file: " << filename;
-  }
-
-  file.read(reinterpret_cast<char*>(&num_rows), sizeof(num_rows));
-  file.read(reinterpret_cast<char*>(&num_cols), sizeof(num_cols));
-  file.read(reinterpret_cast<char*>(&nnz), sizeof(nnz));
-
-  ReadBinary(file, rows);
-  ReadBinary(file, cols);
-  ReadBinary(file, vals);
-
-  CHECK_EQ(rows.size(), cols.size());
-  CHECK_EQ(rows.size(), vals.size());
-
-  cholmod_triplet *trip = cholmod_allocate_triplet(rows, cols,
-                              num_rows * num_cols, 0, CHOLMOD_REAL, &cc);
-
-
-  for (size_t iter = 0; iter < vals.size(); ++iter) {
-    CHECK_LT(rows[iter], num_rows);
-    CHECK_LT(cols[iter], num_cols);
-
-    entries_float->emplace_back(rows[iter], cols[iter],
-                                static_cast<float>(vals[iter]));
-  }
-  return nullptr;
-}
-
-
-
-
 
 int main (int argc, char **argv)
 {
@@ -66,16 +15,6 @@ int main (int argc, char **argv)
     LOG(ERROR) << "Usage: <" << argv[0] << "> <matrix-file> <result-file>";
     return -1;
   }
-
-  // Build needed data objects.
-  cholmod_common Common, *cc;
-  cholmod_dense *A_dense;
-  cholmod_sparse *A_sparse;
-  cholmod_dense *X, *B, *Residual;
-  float rnorm, one [2] = {1,0}, minusone [2] = {-1,0};
-  // start CHOLMOD
-  cc = &Common;
-  cholmod_l_start (cc);
 
   // Load and check read and write file.
   const std::string matrix_file = argv[1];
@@ -93,34 +32,40 @@ int main (int argc, char **argv)
     LOG(FATAL) << "Could not open results file for writing: " << result_file;
   }
 
-  if (kLoadKouroshMatrix) {
-    fclose(matrix_fid);
-    A_sparse = LoadKouroshMatrix(matrix_file);
+  // Build needed data objects.
+  cholmod_common Common, *cc;
+  cholmod_dense *A_dense;
+  cholmod_sparse *A_sparse;
+  cholmod_dense *X, *B, *Residual;
+  float rnorm, one [2] = {1,0}, minusone [2] = {-1,0};
+  // start CHOLMOD
+  cc = &Common;
+  cholmod_l_start (cc);
 
-    if (A_sparse == nullptr) {
-      LOG(FATAL) << "Could not load matrix to sparse.";
-    } else {
-      LOG(ERROR) << "Loaded sparse matrix";
-    }
+  /// Read in matrix A.
+
+  // Test the resave !
+  /*
+
+  A_test = cholmod_l_sparse_to_dense(A, cc);
+  cholmod_l_write_dense(test_fid_dense, A_test, NULL, cc);
+  cholmod_l_write_sparse(test_fid_sparse, A, NULL, NULL, cc);
+  fclose(test_fid_dense);
+  */
+  A_dense = (cholmod_dense *) cholmod_l_read_dense (matrix_fid, cc);
+  A_sparse = cholmod_l_dense_to_sparse(A_dense, 1, cc);
+  if (A_dense == nullptr) {
+    LOG(FATAL) << "Could not load matrix: " << matrix_file;
   } else {
-    A_dense = (cholmod_dense *) cholmod_l_read_dense (matrix_fid, cc);
-    A_sparse = cholmod_l_dense_to_sparse(A_dense, 1, cc);
-    fclose(matrix_fid);
-
-    if (A_dense == nullptr) {
-      LOG(FATAL) << "Could not load matrix: " << matrix_file;
-    } else {
-      LOG(ERROR) << "Loaded matrix: " << matrix_file;
-    }
-    if (A_sparse == nullptr) {
-      LOG(FATAL) << "Could not convert matrix to sparse.";
-    } else {
-      LOG(ERROR) << "Converted Matrix to sparse";
-    }
+    LOG(ERROR) << "Loaded matrix: " << matrix_file;
+  }
+  if (A_sparse == nullptr) {
+    LOG(FATAL) << "Could not convert matrix to sparse.";
+  } else {
+    LOG(ERROR) << "Converted Matrix to sparse";
   }
 
-
-
+  fclose(matrix_fid);
 
 
   const float Asparse_norm = cholmod_l_norm_sparse(A_sparse, 2, cc);

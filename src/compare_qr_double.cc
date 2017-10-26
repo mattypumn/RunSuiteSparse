@@ -18,8 +18,7 @@ typedef sparse_qr::SparseSystemDouble::Triplet triplet_d;
 
 
 template<typename T>
-void ReadBinary(std::istream& is, std::vector<T>& v)
-{
+void ReadBinary(std::istream& is, std::vector<T>& v) {
   std::uint64_t sz;
   is.read(reinterpret_cast<char*>(&sz), sizeof(sz));
   v.resize(sz);
@@ -28,9 +27,7 @@ void ReadBinary(std::istream& is, std::vector<T>& v)
 
 void ReadSparseMatrix(
     const std::string& filename, size_t* num_rows, size_t* num_cols,
-    std::vector<triplet_d>* entries_double
-//     std::vector<triplet_f>* entries_float
-    ) {
+    std::vector<triplet_d>* entries_double) {
   std::ifstream file(filename);
   std::vector<std::uint64_t> rows, cols;
   std::vector<double> vals;
@@ -39,20 +36,20 @@ void ReadSparseMatrix(
   if (!file.is_open()) {
     LOG(FATAL) << "(ReadSparseMatrix) Unable to create file: " << filename;
   }
-  file.read(reinterpret_cast<char*>(num_rows), sizeof(*num_rows));
   file.read(reinterpret_cast<char*>(num_cols), sizeof(*num_cols));
+  file.read(reinterpret_cast<char*>(num_rows), sizeof(*num_rows));
   file.read(reinterpret_cast<char*>(&nnz), sizeof(nnz));
 
-  ReadBinary(file, rows);
   ReadBinary(file, cols);
+  ReadBinary(file, rows);
   ReadBinary(file, vals);
 
   CHECK_EQ(rows.size(), cols.size());
   CHECK_EQ(rows.size(), vals.size());
 
   for (size_t iter = 0; iter < vals.size(); ++iter) {
-    CHECK_LT(rows[iter], *num_rows);
     CHECK_LT(cols[iter], *num_cols);
+    CHECK_LT(rows[iter], *num_rows);
     entries_double->emplace_back(rows[iter], cols[iter], vals[iter]);
 //     entries_float->emplace_back(rows[iter], cols[iter],
 //                                 static_cast<float>(vals[iter]));

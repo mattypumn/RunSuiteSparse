@@ -6,13 +6,20 @@ set (CMAKE_CXX_STANDARD 11)
 
 set(CMAKE_BUILD_TYPE Debug)
 
+################################################################################
+#                               SPQR Example                                   #
+################################################################################
 
+# set(SUITE_SPARSE_FLOAT /usr/local/google/home/mpoulter/libraries/SuiteSparse/)
 #
+# link_directories(${SUITE_SPARSE_FLOAT}/lib)
 # add_executable(spqr_user_guide_example src/spqr_user_guide_example.cc)
 # target_include_directories(spqr_user_guide_example PUBLIC
 #                            ${SUITE_SPARSE_FLOAT}/include)
-# link_directories(${SUITE_SPARSE_FLOAT}/lib)
-# target_link_libraries(spqr_user_guide_example cholmod spqr spqrf glog)
+# target_link_libraries(spqr_user_guide_example cholmod
+#                                               glog
+#                                               spqr
+#                                               suitesparseconfig)
 
 
 
@@ -23,14 +30,15 @@ set(CMAKE_BUILD_TYPE Debug)
 set(SUITE_SPARSE_FLOAT /usr/local/google/home/mpoulter/libraries/SuiteSparse/)
 
 link_directories(${SUITE_SPARSE_FLOAT}/lib)
-add_library(sparse_qr_float src/sparse_qr_float.cc)
-target_include_directories(sparse_qr_float PUBLIC ${SUITE_SPARSE_FLOAT}/include)
-target_link_libraries(sparse_qr_float cholmod spqr)
+add_library(sparse_system_float src/sparse_system_float.cc)
+target_include_directories(sparse_system_float PUBLIC
+                           ${SUITE_SPARSE_FLOAT}/include)
+target_link_libraries(sparse_system_float cholmod spqr)
 
 add_executable(compare_qr_float src/compare_qr_float.cc)
-target_link_libraries(compare_qr_float glog sparse_qr_float)
+target_link_libraries(compare_qr_float glog sparse_system_float)
 
-#
+
 #
 # ################################################################################
 #                               For Doubles                                    #
@@ -38,11 +46,11 @@ target_link_libraries(compare_qr_float glog sparse_qr_float)
 # set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse/)
 #
 # link_directories(${SUITE_SPARSE_DOUBLE}/lib)
-# add_library(sparse_qr_double src/sparse_qr_double.cc)
-# target_include_directories(sparse_qr_double PUBLIC
+# add_library(sparse_system_double src/sparse_system_double.cc)
+# target_include_directories(sparse_system_double PUBLIC
 #                            ${SUITE_SPARSE_DOUBLE}/include)
-# target_link_libraries(sparse_qr_double cholmod spqr)
+# target_link_libraries(sparse_system_double cholmod spqr)
 #
 # add_executable(compare_qr_double src/compare_qr_double.cc)
-# target_link_libraries(compare_qr_double glog sparse_qr_double)
-
+# target_link_libraries(compare_qr_double glog sparse_system_double)
+#

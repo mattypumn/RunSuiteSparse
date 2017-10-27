@@ -61,6 +61,7 @@ void SparseSystemFloat::SetRhs(std::vector<float> rhs) {
   LOG(FATAL) << "Not yet implemented";
 }
 
+size_t solve_counter = 0;
 size_t SparseSystemFloat::TimeSolve(float* residual_norm) {
   CHECK_NOTNULL(A_);
   CHECK_EQ(cc_.status, CHOLMOD_OK) << "cholmod status: " << cc_.status;
@@ -87,8 +88,10 @@ size_t SparseSystemFloat::TimeSolve(float* residual_norm) {
   cholmod_l_free_dense(&x, &cc_);
 
   CHECK_EQ(cc_.status, CHOLMOD_OK) << "cholmod status: " << cc_.status;
+  LOG(INFO) << "FLoat solved: " << ++solve_counter;
   return time_ns;
 }
+
 
 void SparseSystemFloat::TimeSolveN(
     const size_t& n_solves, std::vector<size_t>* times_ns,

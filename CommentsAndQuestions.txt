@@ -1,4 +1,4 @@
-Attempting to run SuitesSparseQR<float> (...) 
+Attempting to run SuitesSparseQR<float> (...)
 
 
 #include <SuiteSparseQR.hpp>
@@ -10,11 +10,11 @@ Attempting to run SuitesSparseQR<float> (...)
 
 		#include "SuiteSparse_config.h" (contains a lot of doubles / double pointers)
 			SuiteSparse_config_struct
-			Timer values are all in doubles			
+			Timer values are all in doubles
 				SuiteSparse_tic	double timers.
-				SuiteSparse_toc	
+				SuiteSparse_toc
 				SuiteSparse_time
-			SuiteSparse_hypot 
+			SuiteSparse_hypot
 			SuiteSparse_divcomplex
 
 
@@ -37,7 +37,7 @@ Attempting to run SuitesSparseQR<float> (...)
 			cholmod_descendant_score_t
 
 			(takse cholmod_common aka cholmod_common_struct as arguments)
-				cholmod_allocate_sparse 
+				cholmod_allocate_sparse
 				cholmod_free_sparse
 				cholmod_l_free_sparse
 				cholmod_reallocate_sparse
@@ -88,12 +88,12 @@ Attempting to run SuitesSparseQR<float> (...)
 
 
 
-##  Trying to just replace double with float 
+##  Trying to just replace double with float
 
 #  cd into local directory.
 $> cd $SUITE_SPARSE
 
-#  Start from ground zero! 
+#  Start from ground zero!
 $> make purge; make clean; make uninstall;
 
 #  Replace all instances of double with float.
@@ -110,7 +110,7 @@ $> gedit ${SUITE_SPARSE}/SPQR/Demo/Makefile
 ---->> Segfault when Running ?? No Problem !
 
 go to spqr.hpp.  Replace the BLAS interface block with this:
-More instructions below! 
+More instructions below!
 
 --------------------------------------------------------------------------------
 
@@ -259,7 +259,12 @@ $> find . -type f -print0| xargs -0 sed -i 's/%DNRM2/%SNRM2/g'
 $> find . -type f -print0| xargs -0 sed -i 's/%DLARF/%SLARF/g'
 
 --------------------------------------------------------------------------------
-Final build command: 
+
+If compiling is erroring on cuda*, set value in SuiteSparse_config.mk:
+
+CUDA=no
+
+Final build command:
 
 $> make clean; make purge; make -j40 BLAS="full-path-to-libblas.so"
 

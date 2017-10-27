@@ -68,6 +68,7 @@ void SparseSystemDouble::SetRhs(std::vector<double> rhs) {
   LOG(FATAL) << "Not yet implemented";
 }
 
+size_t solve_counter = 0;
 size_t SparseSystemDouble::TimeSolve(double* residual_norm) {
   CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
   if (b_ == nullptr) {
@@ -91,6 +92,7 @@ size_t SparseSystemDouble::TimeSolve(double* residual_norm) {
   const size_t time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               stop - start).count();
   cholmod_l_free_dense(&x, &cc_);
+  LOG(INFO) << "solved: " << ++solve_counter;
   return time_ns;
 }
 

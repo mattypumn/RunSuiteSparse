@@ -6,6 +6,10 @@ set (CMAKE_CXX_STANDARD 11)
 
 set(CMAKE_BUILD_TYPE Debug)
 
+set(EIGEN3_INCLUDE_DIR /usr/local/google/home/mpoulter/MarsFramework/MARSFramework/3rd-party/eigen3/)
+
 add_subdirectory(suite_sparse_float/)
 add_subdirectory(suite_sparse_double/)
+add_subdirectory(eigen_helpers/)
 
+include_directories(eigen_helpers/include/)

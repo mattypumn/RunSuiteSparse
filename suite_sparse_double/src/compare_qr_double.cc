@@ -2,19 +2,35 @@
 #include <fstream>
 #include <iomanip>
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
+
+#include <Eigen/SparseCore>
+#include <Eigen/CholmodSupport>
 
 #include "../include/sparse_qr/sparse_system_double.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
+extern struct SuiteSparse_config_struct SuiteSparse_config;
+
 constexpr size_t kNumSolves = 100;
+constexpr bool kLoadTranspose = true;
 const std::string time_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/double_times.txt";
 const std::string res_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/double_res.txt";
 
 typedef sparse_qr::SparseSystemDouble::Triplet triplet_d;
+
+int LogError(const char* format, ...) {
+  char buf[1027];
+  va_list args;
+  va_start(args, format);
+  vsprintf(buf, format, args);
+  LOG(ERROR) << buf;
+  return 0;
+}
 
 template<typename T>
 void ReadBinary(std::istream& is, std::vector<T>& v) {
@@ -35,13 +51,23 @@ void ReadSparseMatrix(
   if (!file.is_open()) {
     LOG(FATAL) << "(ReadSparseMatrix) Unable to create file: " << filename;
   }
-  file.read(reinterpret_cast<char*>(num_cols), sizeof(*num_cols));
-  file.read(reinterpret_cast<char*>(num_rows), sizeof(*num_rows));
-  file.read(reinterpret_cast<char*>(&nnz), sizeof(nnz));
-
-  ReadBinary(file, cols);
-  ReadBinary(file, rows);
-  ReadBinary(file, vals);
+  if (kLoadTranspose) {
+    LOG(WARNING) << "Parsing transpose: (col, row, vals)";
+    file.read(reinterpret_cast<char*>(num_cols), sizeof(*num_cols));
+    file.read(reinterpret_cast<char*>(num_rows), sizeof(*num_rows));
+    file.read(reinterpret_cast<char*>(&nnz), sizeof(nnz));
+    ReadBinary(file, cols);
+    ReadBinary(file, rows);
+    ReadBinary(file, vals);
+  } else {
+    LOG(INFO) << "Parsing standard: (row, col, vals)";
+    file.read(reinterpret_cast<char*>(num_rows), sizeof(*num_rows));
+    file.read(reinterpret_cast<char*>(num_cols), sizeof(*num_cols));
+    file.read(reinterpret_cast<char*>(&nnz), sizeof(nnz));
+    ReadBinary(file, rows);
+    ReadBinary(file, cols);
+    ReadBinary(file, vals);
+  }
 
   CHECK_EQ(rows.size(), cols.size());
   CHECK_EQ(rows.size(), vals.size());
@@ -54,9 +80,11 @@ void ReadSparseMatrix(
 }
 
 int main(int argc, char** argv) {
+  Eigen::Vector3d vec;
   google::InitGoogleLogging(argv[0]);
   FLAGS_alsologtostderr = true;
   FLAGS_colorlogtostderr = true;
+  SuiteSparse_config.printf_func = &LogError;
 
   if (argc < 2) {
     LOG(ERROR) << "Usage: <" << argv[0] << "> <binary-matrix-file-1> ...";

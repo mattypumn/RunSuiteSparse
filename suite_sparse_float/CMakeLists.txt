@@ -27,7 +27,8 @@ target_link_libraries(spqr_user_guide_example cholmod
 
 add_library(sparse_system_float src/sparse_system_float.cc)
 target_include_directories(sparse_system_float PUBLIC
-                           ${SUITE_SPARSE_FLOAT}/include)
+                           ${SUITE_SPARSE_FLOAT}/include
+                           ${EIGEN3_INCLUDE_DIR})
 target_link_libraries(sparse_system_float cholmod spqr)
 
 add_executable(compare_qr_float src/compare_qr_float.cc)

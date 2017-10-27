@@ -36,9 +36,6 @@ class SparseSystemFloat{
   cholmod_common cc_;
 };
 
-// cholmod_dense* sparse_qr(cholmod_sparse* A, cholmod_dense* b,
-//                          cholmod_common* cc);
-
 }  // namespace sparse_qr.
 
 #endif  // MARS_SPARSE_SYSTEM_FLOAT

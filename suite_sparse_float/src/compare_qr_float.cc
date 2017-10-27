@@ -12,12 +12,13 @@
 
 #include "../include/sparse_qr/sparse_system_float.h"
 
+extern struct SuiteSparse_config_struct SuiteSparse_config;
+
 constexpr size_t kNumSolves = 100;
 constexpr bool kLoadTranspose = true;
 const std::string times_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/float_times.txt";
 const std::string residuals_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/float_res.txt";
 
-extern struct SuiteSparse_config_struct SuiteSparse_config;
 
 typedef sparse_qr::SparseSystemFloat::Triplet triplet_f;
 
@@ -60,7 +61,7 @@ void ReadSparseMatrix(
     ReadBinary(file, rows);
     ReadBinary(file, vals);
   } else {
-    LOG(WARNING) << "Parsing standard: (row, col, vals)";
+    LOG(INFO) << "Parsing standard: (row, col, vals)";
     file.read(reinterpret_cast<char*>(num_rows), sizeof(*num_rows));
     file.read(reinterpret_cast<char*>(num_cols), sizeof(*num_cols));
     file.read(reinterpret_cast<char*>(&nnz), sizeof(nnz));
@@ -124,7 +125,6 @@ int main(int argc, char** argv) {
   std::ofstream rfile(residuals_file);
   for (const auto& res : residual_norms) {
     rfile << std::setprecision(15) << res << std::endl;
-//     LOG(INFO) << "res: " << res;
   }
   rfile.close();
 }

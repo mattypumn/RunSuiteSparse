@@ -6,25 +6,34 @@
 #include <tuple>
 #include <vector>
 
-void error_handler(int status, const char *file,
+
+namespace sparse_qr{
+
+constexpr size_t kNumSpqrThread = 15;
+constexpr size_t kNumCores = 10;
+constexpr double kNanoToSeconds = 1e-9;
+
+
+void LogError(int status, const char *file,
         int line, const char *message) {
   LOG(INFO) << "CHOLMOD ERROR status: " << status << " file: " << file <<
     " line: " << line << " message: " << message;
 }
 
-namespace sparse_qr{
-
 SparseSystemDouble::SparseSystemDouble(){
   LOG(FATAL) << "Constructor Not implemented.";
 }
+
 
 SparseSystemDouble::SparseSystemDouble(
     const size_t& rows, const size_t& cols,
     const std::vector<Triplet>& vals){
   cholmod_start(&cc_);
   cc_.itype = CHOLMOD_LONG;
-  cc_.error_handler = &error_handler;
+  cc_.error_handler = &LogError;
   cc_.try_catch = 0;
+  cc_.SPQR_nthreads = static_cast<int>(kNumSpqrThread);
+  cc_.SPQR_grain = 2 * static_cast<int>(kNumCores);
 
   b_ = cholmod_l_ones(rows, 1, CHOLMOD_REAL, &cc_);
 
@@ -92,7 +101,8 @@ size_t SparseSystemDouble::TimeSolve(double* residual_norm) {
   const size_t time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               stop - start).count();
   cholmod_l_free_dense(&x, &cc_);
-  LOG(INFO) << "solved: " << ++solve_counter;
+  LOG(INFO) << "solved: " << ++solve_counter << " time (s): " <<
+                time_ns * kNanoToSeconds;
   return time_ns;
 }
 

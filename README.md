@@ -9,6 +9,8 @@ REQUIREMENTS:
             http://faculty.cse.tamu.edu/davis/suitesparse.html
       - Patients.
 
+      - glogging / gflags.
+
       Be sure the above have been compiled.
       NOTE: CUDA is not necessary for this library.
 

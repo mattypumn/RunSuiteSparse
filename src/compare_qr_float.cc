@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -8,14 +10,24 @@
  #include <glog/logging.h>
 #include <gflags/gflags.h>
 
-#include "../include/sparse_qr/sparse_qr_float.h"
+#include "../include/sparse_qr/sparse_system_float.h"
 
 constexpr size_t kNumSolves = 100;
 const std::string times_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/float_times.txt";
 const std::string residuals_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/float_res.txt";
 
+extern struct SuiteSparse_config_struct SuiteSparse_config;
 
 typedef sparse_qr::SparseSystemFloat::Triplet triplet_f;
+
+int LogError(const char* format, ...) {
+  char buf[1027];
+  va_list args;
+  va_start(args, format);
+  vsprintf(buf, format, args);
+  LOG(ERROR) << buf;
+  return 0;
+}
 
 
 template<typename T>
@@ -55,17 +67,14 @@ void ReadSparseMatrix(
     entries_float->emplace_back(rows[iter], cols[iter],
                                 static_cast<float>(vals[iter]));
   }
-
-  LOG(INFO) << "matrix file: " << filename;
-  LOG(INFO) << "nnz: " << nnz;
-  LOG(INFO) << "num_rows: " << *num_rows;
-  LOG(INFO) << "num_cols: " << *num_cols;
 }
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   FLAGS_alsologtostderr = true;
   FLAGS_colorlogtostderr = true;
+
+  SuiteSparse_config.printf_func = &LogError;
 
   if (argc < 2) {
     LOG(ERROR) << "Usage: <" << argv[0] << "> <binary-matrix-file-1> ...";
@@ -104,9 +113,9 @@ int main(int argc, char** argv) {
   }
   tfile.close();
 
-  std::ofstream rfile(times_file);
+  std::ofstream rfile(residuals_file);
   for (const auto& res : residual_norms) {
-    rfile << res << std::endl;
+    rfile << std::setprecision(15) << res << std::endl;
 //     LOG(INFO) << "res: " << res;
   }
   rfile.close();

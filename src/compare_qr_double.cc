@@ -1,21 +1,20 @@
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <math.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
 
-#include "../include/sparse_qr/sparse_qr_double.h"
-#include "../include/sparse_qr/sparse_qr_float.h"
+#include "../include/sparse_qr/sparse_system_double.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
 constexpr size_t kNumSolves = 100;
-const std::string save_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/double_times.txt";
+const std::string time_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/double_times.txt";
+const std::string res_file = "/usr/local/google/home/mpoulter/RunSuiteSparse/data/double_res.txt";
 
 typedef sparse_qr::SparseSystemDouble::Triplet triplet_d;
-// typedef sparse_qr::SparseSystemFloat::Triplet triplet_f;
-
 
 template<typename T>
 void ReadBinary(std::istream& is, std::vector<T>& v) {
@@ -51,8 +50,6 @@ void ReadSparseMatrix(
     CHECK_LT(cols[iter], *num_cols);
     CHECK_LT(rows[iter], *num_rows);
     entries_double->emplace_back(rows[iter], cols[iter], vals[iter]);
-//     entries_float->emplace_back(rows[iter], cols[iter],
-//                                 static_cast<float>(vals[iter]));
   }
 }
 
@@ -75,23 +72,29 @@ int main(int argc, char** argv) {
 
 //   std::vector<size_t> float_times_ns;
   std::vector<size_t> double_times_ns;
+  std::vector<double> residual_norms;
   std::random_shuffle(matrix_files.begin(), matrix_files.end());
   for (const std::string& file : matrix_files) {
     size_t num_cols, num_rows;
-//     std::vector<triplet_d> triplets_d;
-    /*  Doubles */
     std::vector<triplet_d> triplets_d;
-    ReadSparseMatrix(file, &num_rows, &num_cols, &triplets_d);
 
+    ReadSparseMatrix(file, &num_rows, &num_cols, &triplets_d);
     sparse_qr::SparseSystemDouble system_d(num_rows, num_cols, triplets_d);
 
-//     const size_t time = system_d.TimeSolve();
-    system_d.TimeSolveN(kNumSolves, &double_times_ns);
+    system_d.TimeSolveN(kNumSolves, &double_times_ns, &residual_norms);
   }
-
   CHECK_GT(double_times_ns.size(), 0);
-  std::ofstream outfile(save_file);
+  CHECK_EQ(double_times_ns.size(), residual_norms.size());
+
+  // Save everything.
+  std::ofstream outfile(time_file);
   for (const auto& time : double_times_ns) {
     outfile << time << std::endl;
+  }
+  outfile.close();
+
+  outfile.open(res_file);
+  for (const auto& res : residual_norms) {
+    outfile << std::setprecision(15) << res << std::endl;
   }
 }

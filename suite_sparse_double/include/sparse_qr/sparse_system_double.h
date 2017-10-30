@@ -15,7 +15,9 @@ class SparseSystemDouble{
   typedef std::tuple<size_t, size_t, double> Triplet;
 
   SparseSystemDouble(const size_t& rows, const size_t& cols,
-                     const std::vector<Triplet>& vals);
+                     const std::vector<Triplet>& vals,
+                     const size_t& num_threads = 1,
+                     const size_t& num_cores = 1);
   ~SparseSystemDouble();
 
   void SetDimensions(const size_t& rows, const size_t& cols);
@@ -32,14 +34,14 @@ class SparseSystemDouble{
  private:
   SparseSystemDouble();
 
-//   cholmod_dense* sparse_qr(cholmod_sparse* A, cholmod_dense* b,
-//                            cholmod_common* cc);
-
   cholmod_dense* sparse_qr();
 
   cholmod_sparse* A_;
   cholmod_dense* b_;
   cholmod_common cc_;
+
+  const size_t num_threads_;
+  const size_t num_cores_;
 };
 
 }  // namespace sparse_qr.

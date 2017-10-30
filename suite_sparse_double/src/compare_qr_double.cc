@@ -7,9 +7,6 @@
 #include <string>
 #include <vector>
 
-#include <Eigen/SparseCore>
-#include <Eigen/CholmodSupport>
-
 #include "../include/sparse_qr/sparse_system_double.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
@@ -101,11 +98,9 @@ int main(int argc, char** argv) {
 //   std::vector<size_t> float_times_ns;
   std::vector<size_t> double_times_ns;
   std::vector<double> residual_norms;
-  std::random_shuffle(matrix_files.begin(), matrix_files.end());
   for (const std::string& file : matrix_files) {
     size_t num_cols, num_rows;
     std::vector<triplet_d> triplets_d;
-
     ReadSparseMatrix(file, &num_rows, &num_cols, &triplets_d);
     sparse_qr::SparseSystemDouble system_d(num_rows, num_cols, triplets_d);
 

@@ -25,5 +25,10 @@ target_link_libraries(sparse_system_double cholmod spqr)
 add_executable(compare_qr_double src/compare_qr_double.cc)
 target_link_libraries(compare_qr_double glog
                                         sparse_system_double
-                                        suitesparseconfig)
+                                        suitesparseconfig
+                                        eigen_helpers)
 
+add_executable(compare_split_qr src/compare_split_qr.cc)
+target_link_libraries(compare_split_qr glog
+                                       sparse_system_double
+                                       eigen_helpers)

@@ -13,3 +13,5 @@ add_subdirectory(suite_sparse_double/)
 add_subdirectory(eigen_helpers/)
 
 include_directories(eigen_helpers/include/)
+include_directories(suite_sparse_double/include/)
+include_directories(suite_sparse_float/include/)

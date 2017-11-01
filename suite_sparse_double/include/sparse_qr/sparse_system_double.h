@@ -18,10 +18,13 @@ class SparseSystemDouble{
                      const std::vector<Triplet>& vals,
                      const size_t& num_threads = 1,
                      const size_t& num_cores = 1);
+
   ~SparseSystemDouble();
 
   void SetDimensions(const size_t& rows, const size_t& cols);
+
   void SetWithTuples(const std::vector<Triplet>& vals);
+
   void SetRhs(std::vector<double> rhs);
 
   size_t TimeSolve(double* residual_norm = nullptr);
@@ -31,10 +34,14 @@ class SparseSystemDouble{
                   std::vector<double>* residual_norms = nullptr);
 
   size_t SystemSolve(const std::vector<double>& rhs, std::vector<double>* x);
+
+  size_t TimeQrDecomposition(std::vector<double>* QT_b,
+                             std::vector<Triplet>* R_triplets,
+                             std::vector<size_t>* permutation);
  private:
   SparseSystemDouble();
 
-  cholmod_dense* sparse_qr();
+  void CholmodSparseToTriplet(cholmod_sparse* M, std::vector<Triplet>* triplet);
 
   cholmod_sparse* A_;
   cholmod_dense* b_;

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <glog/logging.h>
 #include <SuiteSparseQR.hpp>
+#include <spqr.hpp>
 #include <tuple>
 #include <vector>
 
@@ -29,8 +30,8 @@ SparseSystemDouble::SparseSystemDouble(
   cc_.itype = CHOLMOD_LONG;
   cc_.error_handler = &LogError;
   cc_.try_catch = 0;
-  cc_.SPQR_nthreads = static_cast<int>(num_threads);
-  cc_.SPQR_grain = 2 * static_cast<int>(num_cores);
+  cc_.SPQR_nthreads = static_cast<int>(num_threads_);
+  cc_.SPQR_grain = 2 * static_cast<int>(num_cores_);
 
   b_ = cholmod_l_ones(rows, 1, CHOLMOD_REAL, &cc_);
 
@@ -39,10 +40,8 @@ SparseSystemDouble::SparseSystemDouble(
   CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
   CHECK_EQ(trip->nnz, 0);
   for (const auto& entry : vals) {
-    static_cast<long *>(trip->i)[trip->nnz] =
-        static_cast<int>(std::get<0>(entry));
-    static_cast<long *>(trip->j)[trip->nnz] =
-        static_cast<int>(std::get<1>(entry));
+    static_cast<long *>(trip->i)[trip->nnz] = std::get<0>(entry);
+    static_cast<long *>(trip->j)[trip->nnz] = std::get<1>(entry);
     static_cast<double *>(trip->x)[trip->nnz] = std::get<2>(entry);
     ++trip->nnz;
   }
@@ -82,7 +81,7 @@ size_t SparseSystemDouble::TimeSolve(double* residual_norm) {
     CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
   }
   const auto start = std::chrono::high_resolution_clock::now();
-  cholmod_dense* x = sparse_qr();
+  cholmod_dense* x = SuiteSparseQR<double>(A_, b_, &cc_);
   const auto stop = std::chrono::high_resolution_clock::now();
 
   // Calculate and save residual norm.
@@ -138,13 +137,76 @@ size_t SparseSystemDouble::SystemSolve(
   return 0;
 }
 
-cholmod_dense* SparseSystemDouble::sparse_qr() {
-  return SuiteSparseQR <double> (A_, b_, &cc_);
+void SparseSystemDouble::CholmodSparseToTriplet(
+    cholmod_sparse* M, std::vector<SparseSystemDouble::Triplet>* triplets) {
+  triplets->clear();
+  cholmod_triplet *trip = cholmod_l_sparse_to_triplet(M, &cc_);
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
+  triplets->reserve(trip->nnz);
+  for (size_t iter = 0; iter < trip->nnz; ++iter) {
+    triplets->emplace_back(static_cast<size_t *>(trip->i)[iter],
+                           static_cast<size_t *>(trip->j)[iter],
+                           static_cast<double *>(trip->x)[iter]);
+  }
+  cholmod_l_free_triplet(&trip, &cc_);
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
 }
-//
-// cholmod_l_dense* sparse_qr_double(
-//     cholmod_l_sparse* A, cholmod_l_dense* b, cholmod_l_common* cc) {
-//   cholmod_l_dense* x = SuiteSparseQR <double> (A, b, cc);
-//   return x;
+
+size_t SparseSystemDouble::TimeQrDecomposition(
+    std::vector<double>* QT_b, std::vector<Triplet>* R_triplets,
+    std::vector<size_t>* permutation) {
+  if (b_ == nullptr) {
+    b_ = cholmod_l_ones(A_->nrow, 1, A_->xtype, &cc_);
+  }
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
+
+  cholmod_dense *Z;  // Q' * b.
+  cholmod_sparse *R;  // R decomposition.
+  SuiteSparse_long *E;  // Permutation vector.
+
+  const auto start = std::chrono::high_resolution_clock::now();
+//   // To decompose without solving for Q' * b.
+//   SuiteSparseQR<double>(SPQR_ORDERING_DFAULT, SPQR_DEFAULT_TOL, A_->ncol, 0,
+//               A_, NULL, NULL, NULL, NULL, &R, &E, NULL, NULL, NULL, &cc_);
+  // To decompose and solve for Z = Q'*b.
+  SuiteSparseQR<double>(SPQR_ORDERING_DEFAULT, SPQR_DEFAULT_TOL,
+                        A_->ncol,           // Rows of Z and R to return.
+                        0,                  // Z = C = Q'*b.
+                        A_, NULL, b_,       // Input.
+                        NULL, &Z, &R, &E, NULL, NULL, NULL, &cc_); // Output.
+  const auto stop = std::chrono::high_resolution_clock::now();
+  const auto time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                              stop - start).count();
+  CHECK_EQ(b_->ncol, Z->ncol);
+  CHECK_EQ(A_->ncol, Z->nrow);
+
+  // Fill R triplets.
+  CholmodSparseToTriplet(R, R_triplets);
+
+  // Fill QT_b.
+  QT_b->clear();
+  QT_b->reserve(Z->nrow);
+  for (size_t row_i = 0; row_i < Z->nrow; ++row_i) {
+    QT_b->push_back(static_cast<double *>(Z->x)[row_i]);
+  }
+
+  // Set permutation.
+  permutation->clear();
+  permutation->reserve(A_->ncol);
+  for (size_t perm_i = 0; perm_i < A_->ncol; ++perm_i) {
+    permutation->push_back(E[perm_i]);
+  }
+
+  cholmod_l_free(A_->ncol, sizeof(SuiteSparse_long), E, &cc_);
+  cholmod_l_free_dense(&Z, &cc_);
+  cholmod_l_free_sparse(&R, &cc_);
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
+
+  return time_ns;
+}
+
+
+
 }  // namespace sparse_qr.
+
 

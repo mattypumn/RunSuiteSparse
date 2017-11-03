@@ -90,7 +90,6 @@ void WriteMatrixBinary(const std::string& filename, const Eigen::MatrixXd& mat)
 
 void WriteSparseMatrix(const std::string& filename, const Eigen::SparseMatrix<double>& mat)
 {
-  // NOTE(Kourosh) We are not saving the matrix size ????
   std::ofstream file(filename);
   if( !file )
     throw std::runtime_error("(WriteSparseMatrix) Unable to open file: " + filename);

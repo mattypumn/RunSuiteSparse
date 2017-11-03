@@ -10,9 +10,9 @@ set(CMAKE_BUILD_TYPE Debug)
 #                               For Doubles                                    #
 ################################################################################
 
-# set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse/)
+set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse/)
 ## For tbb.
-set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse_Tbb/)
+# set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse_Tbb/)
 
 
 link_directories(${SUITE_SPARSE_DOUBLE}/lib)

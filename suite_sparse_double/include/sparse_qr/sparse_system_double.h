@@ -15,8 +15,8 @@ class SparseSystemDouble{
   typedef std::tuple<size_t, size_t, double> Triplet;
 
   SparseSystemDouble(const size_t& rows, const size_t& cols,
-                     const std::vector<Triplet>& vals,
-                     const size_t& num_threads = 1,
+                     const std::vector<Triplet>& A_vals,
+                     const size_t& num_threads = 0,
                      const size_t& num_cores = 1);
 
   ~SparseSystemDouble();
@@ -25,9 +25,10 @@ class SparseSystemDouble{
 
   void SetWithTuples(const std::vector<Triplet>& vals);
 
-  void SetRhs(std::vector<double> rhs);
+  void SetRhs(const std::vector<double>& rhs);
 
-  size_t TimeSolve(double* residual_norm = nullptr);
+  size_t TimeSolve(double* residual_norm = nullptr,
+                   std::vector<double>* x_solve = nullptr);
 
   void TimeSolveN(const size_t& n_solves,
                   std::vector<size_t>* times_ns,
@@ -41,7 +42,7 @@ class SparseSystemDouble{
  private:
   SparseSystemDouble();
 
-  void CholmodSparseToTriplet(cholmod_sparse* M, std::vector<Triplet>* triplet);
+  void CholmodSparseToTriplet(cholmod_sparse* A, std::vector<Triplet>* triplet);
 
   cholmod_sparse* A_;
   cholmod_dense* b_;

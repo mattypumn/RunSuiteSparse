@@ -12,4 +12,4 @@ compare_split_qr.cc
 
   WARNING:
     The R being returned by the QR factorization is not matching the R which is
-    returned by matlab's spqr(...).
+    returned by SuiteSparse's matlab implementation.  spqr(...).

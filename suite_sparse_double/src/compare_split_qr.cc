@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 
 
   /////////////////////////////////////////////
-  //           Loop over matrices.           //
+  //           Loop over Jacobians.          //
   /////////////////////////////////////////////
   std::vector<size_t> double_times_ns;
   std::vector<double> residual_norms;
@@ -138,6 +138,7 @@ int main(int argc, char** argv) {
                                           J_t.transpose() : J_t;
     LOG(INFO) << "Matrix read: " << filename;
     LOG(INFO) << "Matrix size: " << J.rows() << " " << J.cols();
+    LOG(INFO) << "Matrix nnz: " << J.nonZeros();
 
     /////////////////////////////////////////////
     //           Split J into submatrices.     //
@@ -166,8 +167,8 @@ int main(int argc, char** argv) {
                                           last_rows));
     // Assert that the last rows are the identical.
     CHECK_EQ((split_matrices.back().bottomRows(1) -
-              J.bottomRows(1)).squaredNorm(), 0);
-
+              J.bottomRows(1)).squaredNorm(), 0) << "Error Saving sub-matrices."
+              "  The final row of last matrix and J are not the same.";
 
     /////////////////////////////////////////////
     //           Time J.                       //
@@ -195,21 +196,26 @@ int main(int argc, char** argv) {
     delete system_solver;
     system_solver = nullptr;
 
-    // Save the decomposition and Q'*b.
     size_t matrix_counter = 0;
-    WriteDecomposition(matrix_counter, QT_b, J.cols(), J.cols(), R_trip,
-                       perm);
-    LOG(FATAL) << "This program is not recovering our R matrix properly." <<
-                  std::endl << "Use matlab script 'compare_qr.m' to compare"
-                  "with the matrix solved using spqr in matlab.";
-    ++matrix_counter;
+
+    // Save the decomposition and Q'*b.
+//     WriteDecomposition(matrix_counter, QT_b, J.cols(), J.cols(), R_trip,
+//                        perm);
+//     LOG(FATAL) << "This program is not recovering our R matrix properly." <<
+//                   std::endl << "Use matlab script 'spy_R.m' to compare"
+//                   "with the matrix solved using spqr in matlab.";
+//     ++matrix_counter;
 
     /////////////////////////////////////////////
     //           Time the submatrices.         //
     /////////////////////////////////////////////
     LOG(INFO) << "Solving sub-systems...";
-    const size_t m_huge = num_matrix_blocks * J.cols();
     const size_t R_block_size = J.cols();
+    size_t m_huge = 0;
+    for (const auto& mat : split_matrices) {
+      m_huge += mat.rows();
+    }
+    CHECK_LE(m_huge, num_matrix_blocks * R_block_size);
     Eigen::SparseMatrix<double> R_huge(m_huge, J.cols());
     std::vector<SparseSystemTriplet> R_huge_triplets;
     std::vector<double> C_huge(m_huge);  // C = Q'*b
@@ -228,18 +234,35 @@ int main(int argc, char** argv) {
                                                             &perm);
       LOG(INFO) << matrix_counter << " sub-matrix time (s): " <<
                    time_ns * kNanoToSeconds;
-      LOG(WARNING) << "Values to add: " << R_trip.size();
-      R_huge_triplets.reserve(R_trip.size());
+      LOG(INFO) << "nnz to add to R_huge: " << R_trip.size();
+
+      //  Get the Sub Matrix.
+      Eigen::SparseMatrix<double> R_sub;
+      TripletsToEigenSparse(R_trip, R_block_size, R_block_size, &R_sub);
+
+      // Apply Permutation.
+      Eigen::VectorXi p_vec(perm.size());
+      for (int perm_i = 0; perm_i < perm.size(); ++ perm_i) {
+        p_vec(perm_i) = static_cast<int>(perm[perm_i]);
+      }
+      R_sub = R_sub * p_vec.asPermutation().inverse();
+
+      // Extract triplets after permutation.
+      std::vector<sparse_qr::SparseSystemDouble::Triplet> tmp_trips;
+      EigenSparseToTriplets(R_sub, &tmp_trips);
+
+      // Add triplets to R_huge, remembering block offset.
+      R_huge_triplets.reserve(tmp_trips.size());
       // TODO(mpoulter) Use Functor to help with parallelization.
       for (const auto& entry : R_trip) {
         const size_t r_row = std::get<0>(entry);
         const size_t r_col = std::get<1>(entry);
         const double value = std::get<2>(entry);
-        const size_t giant_row = r_row + J.cols();
-        const size_t giant_col = perm[r_col];
-        CHECK_NE(value, 0);
-        CHECK_LT(giant_col, J.cols()) << " block_start: " << block_start;
-        CHECK_LT(giant_row, m_huge);
+        const size_t giant_row = (R_block_size * mat_i) + r_row;
+        const size_t giant_col = r_col;
+        CHECK_NE(value, 0.0);
+        CHECK_LT(giant_col, R_block_size) << " Column is out of bounds.";
+        CHECK_LT(giant_row, m_huge) << " Row is out of bounds.";
         R_huge_triplets.emplace_back(giant_row, giant_col, value);
       }
       LOG(INFO) << "R_huge_triplets size: " << R_huge_triplets.size();

@@ -4,7 +4,7 @@ project(RunSuiteSparse)
 
 set (CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 set(EIGEN3_INCLUDE_DIR /usr/local/google/home/mpoulter/MarsFramework/MARSFramework/3rd-party/eigen3/)
 

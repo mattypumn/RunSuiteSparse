@@ -4,7 +4,9 @@ project(RunSuiteSparse)
 
 set (CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+
+set(CMAKE_CXX_FLAGS "-O3")
 
 ################################################################################
 #                               For Doubles                                    #
@@ -13,6 +15,8 @@ set(CMAKE_BUILD_TYPE Debug)
 set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse/)
 ## For tbb.
 # set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse_Tbb/)
+
+
 
 
 link_directories(${SUITE_SPARSE_DOUBLE}/lib)

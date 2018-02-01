@@ -86,7 +86,7 @@ void SparseSystemDouble::SetWithTuples(const std::vector<Triplet>& vals) {
 }
 
 void SparseSystemDouble::SetRhs(const std::vector<double>& rhs) {
-  CHECK_EQ(b_->ncol, rhs.size()) << " vector of incorrect size for system Ax=b";
+  CHECK_EQ(b_->nrow, rhs.size()) << " vector of incorrect size for system Ax=b";
   for (size_t val_i = 0; val_i < rhs.size(); ++val_i) {
     static_cast<double *>(b_->x)[val_i] = rhs[val_i];
   }
@@ -193,15 +193,13 @@ size_t SparseSystemDouble::TimeQrDecomposition(
     std::vector<size_t>* permutation) {
   CHECK_NOTNULL(b_);
   CHECK_NOTNULL(A_);
+  CHECK_NOTNULL(QT_b);
+  CHECK_NOTNULL(R_triplets);
+  CHECK_NOTNULL(permutation);
 
   cholmod_dense *C = nullptr;  // Q' * b.
   cholmod_sparse *R = nullptr;  // R decomposition.
   SuiteSparse_long *p = nullptr;  // Permutation vector.
-
-  // Sanity check to ensure B = 1-vector.
-  for (int64_t i = 0; i < b_->ncol; ++i) {
-    CHECK_EQ(static_cast<double *>(b_->x)[i], 1.);
-  }
 
   const auto start = std::chrono::high_resolution_clock::now();
   // Wrapper function.
@@ -274,7 +272,6 @@ size_t SparseSystemDouble::TimeQrDecomposition(
   CHECK_EQ(A_->ncol, C->nrow);
 
   // Fill R triplets.
-  // WARNING check kSuiteSparseIsReturningTransposeForSomeDumbassReason.
   CholmodSparseToTriplet(R, R_triplets);
 
   // Fill QT_b.

@@ -20,6 +20,21 @@ constexpr double kNanoToSeconds = 1e-9;
 
 typedef sparse_qr::SparseSystemDouble::Triplet SparseSystemTriplet;
 
+void dlmwrite(const std::string& outfile, const Eigen::MatrixXd& mat,
+              const std::string& delim = ",") {
+  std::ofstream os(outfile.c_str());
+  if (!os.is_open()) {
+    LOG(FATAL) << "Could not write to file: " << outfile;
+  }
+  const int cols = mat.cols(), rows = mat.rows();
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      os << std::setprecision(15) << mat(i,j) <<
+            ((j + 1 == cols) ? "\n" : delim);
+    }
+  }
+}
+
 void ShowTimeStats(std::vector<double>& times_seconds) {
   double total_time = 0.;
   for (const double& time : times_seconds) {
@@ -121,22 +136,37 @@ int main (int argc, char** argv) {
   //       Solve with SuiteSparse.           //
   /////////////////////////////////////////////
   std::vector<sparse_qr::SparseSystemDouble::Triplet> mat_triplets;
-  std::vector<double> Qt_B;
+  std::vector<double> Qt_b_vec;
   std::vector<SparseSystemTriplet> R_trip;
   std::vector<size_t> perm;
   std::vector<double> times_s;
+  Eigen::MatrixXd Qt_B_matrix(B.rows(), B.cols());
+  Eigen::VectorXd p_vec(J.cols());
+  EigenSparseToTriplets(J, &mat_triplets);
   for (size_t test_i = 0; test_i < kNumSolves; ++test_i) {
-    Qt_B.clear();
-    R_trip.clear();
-    perm.clear();
-    EigenSparseToTriplets(J, &mat_triplets);
-    sparse_qr::SparseSystemDouble* system_solver =
+    for (int system_i = 0; system_i < B.cols(); ++system_i) {
+      Qt_b_vec.clear();
+      R_trip.clear();
+      perm.clear();
+      Eigen::VectorXd b_col = B.col(system_i);
+      for (int b_elem_i = 0; b_elem_i < b_col.rows(); ++b_elem_i) {
+         Qt_b_vec.emplace_back(b_col(b_elem_i));
+      }
+      sparse_qr::SparseSystemDouble* system_solver =
             new sparse_qr::SparseSystemDouble(J.rows(), J.cols(), mat_triplets);
-    const size_t J_time_ns = system_solver->TimeQrDecomposition(&Qt_B, &R_trip,
-                                                              &perm);
-    times_s.emplace_back(J_time_ns * kNanoToSeconds);
-    delete system_solver;
-    system_solver = nullptr;
+      system_solver->SetRhs(Qt_b_vec);
+      const size_t J_time_ns = system_solver->TimeQrDecomposition(&Qt_b_vec,
+                                                      &R_trip, &perm);
+      for (int qtb_i = 0; qtb_i < Qt_b_vec.size(); ++qtb_i) {
+        Qt_B_matrix(qtb_i, system_i) = Qt_b_vec[qtb_i];
+      }
+      for (int p_idx = 0; p_idx < perm.size(); ++p_idx) {
+        p_vec(p_idx) = perm[p_idx];
+      }
+      times_s.emplace_back(J_time_ns * kNanoToSeconds);
+      delete system_solver;
+      system_solver = nullptr;
+    }
     LOG(INFO) << "solve " << test_i + 1 << " / " << kNumSolves;
   }
   ShowTimeStats(times_s);
@@ -162,11 +192,8 @@ int main (int argc, char** argv) {
   Eigen::SparseMatrix<double> R_sparse;
   TripletsToEigenSparse(R_trip, J.cols(), J.cols(), &R_sparse);
   eigen_helpers::WriteSparseMatrix(outfile_R, R_sparse);
-
-  std::ofstream write_fid(outfile_QtB);
-  for (const auto& val : Qt_B) {
-    write_fid << std::setprecision(15) << val << std::endl;
-  }
+  dlmwrite(outfile_QtB, Qt_B_matrix);
+  dlmwrite(outfile_perm, p_vec);
 
 
   return 0;

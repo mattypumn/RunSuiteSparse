@@ -2,7 +2,8 @@
 #define MARS_SPARSE_SYSTEM_DOUBLE
 
 
-
+#include <Eigen/Core>
+#include <Eigen/Sparse>
 #include <tuple>
 #include <vector>
 
@@ -39,6 +40,7 @@ class SparseSystemDouble{
   size_t TimeQrDecomposition(std::vector<double>* QT_b,
                              std::vector<Triplet>* R_triplets,
                              std::vector<size_t>* permutation);
+
  private:
   SparseSystemDouble();
 

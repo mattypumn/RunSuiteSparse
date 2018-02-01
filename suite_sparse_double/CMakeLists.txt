@@ -12,12 +12,10 @@ set(CMAKE_CXX_FLAGS "-O3")
 #                               For Doubles                                    #
 ################################################################################
 
-set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse/)
+set(SUITE_SPARSE_DOUBLE /home/mattp/Libraries/SuiteSparseDouble/)
+
 ## For tbb.
 # set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse_Tbb/)
-
-
-
 
 link_directories(${SUITE_SPARSE_DOUBLE}/lib)
 add_library(sparse_system_double src/sparse_system_double.cc)
@@ -34,5 +32,11 @@ target_link_libraries(compare_qr_double glog
 
 add_executable(compare_split_qr src/compare_split_qr.cc)
 target_link_libraries(compare_split_qr glog
+                                       sparse_system_double
+                                       eigen_helpers)
+
+add_executable(test_spqr_double src/test_spqr_double.cc)
+target_link_libraries(test_spqr_double fs_utils
+                                       glog
                                        sparse_system_double
                                        eigen_helpers)

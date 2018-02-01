@@ -10,7 +10,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #                               SPQR Example                                   #
 ################################################################################
 
-set(SUITE_SPARSE_FLOAT /usr/local/google/home/mpoulter/libraries/SuiteSparse/)
+set(SUITE_SPARSE_FLOAT /home/mattp/Libraries/SuiteSparseFloat/)
 
 link_directories(${SUITE_SPARSE_FLOAT}/lib)
 add_executable(spqr_user_guide_example src/spqr_user_guide_example.cc)
@@ -35,4 +35,3 @@ add_executable(compare_qr_float src/compare_qr_float.cc)
 target_link_libraries(compare_qr_float glog
                                        sparse_system_float
                                        suitesparseconfig)
-

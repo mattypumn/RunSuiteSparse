@@ -128,7 +128,7 @@ Eigen::SparseMatrix<double> ReadSparseMatrix(const std::string& filename) {
   std::uint64_t num_rows, num_cols, nnz;
 
   if (file == nullptr) {
-    throw std::runtime_error("(ReadSparseMatrix) Unable to create file: " + filename);
+    throw std::runtime_error("(ReadSparseMatrix) Unable to read file: " + filename);
   }
 
   file.read(reinterpret_cast<char*>(&num_rows), sizeof(num_rows));

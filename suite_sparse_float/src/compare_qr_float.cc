@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
- #include <glog/logging.h>
+#include <glog/logging.h>
 #include <gflags/gflags.h>
 
 #include "../include/sparse_qr/sparse_system_float.h"

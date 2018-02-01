@@ -169,8 +169,8 @@ void SparseSystemDouble::CholmodSparseToTriplet(
   cholmod_triplet *trip = cholmod_l_sparse_to_triplet(A, &cc_);
   CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
   const size_t nnz = cholmod_l_nnz(A, &cc_);
-  LOG(INFO) << "actual nnz: " << nnz;
-  LOG(INFO) << "prev reported nnz: " << trip->nnz;
+//   LOG(INFO) << "actual nnz: " << nnz;
+//   LOG(INFO) << "prev reported nnz: " << trip->nnz;
   triplets->reserve(trip->nnz);
   for (size_t iter = 0; iter < nnz; ++iter) {
     triplets->emplace_back(static_cast<size_t *>(trip->i)[iter],
@@ -216,8 +216,8 @@ size_t SparseSystemDouble::TimeQrDecomposition(
   const auto stop = std::chrono::high_resolution_clock::now();
   const auto time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               stop - start).count();
-  LOG(INFO) << "R nnnz: " << R->nz;
-  LOG(INFO) << "R max_nnnz: " << R->nzmax;
+//   LOG(INFO) << "R nnnz: " << R->nz;
+//   LOG(INFO) << "R max_nnnz: " << R->nzmax;
 
 // TESTING Solving E*(R\(Q'*b)).
 // NOTE  Could not find a handy way to solve for x = E*(R \(Q'*b)).

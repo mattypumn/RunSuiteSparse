@@ -40,6 +40,8 @@ SparseSystemDouble::SparseSystemDouble(
     const std::vector<Triplet>& A_vals,
     const size_t& num_threads, const size_t& num_cores)
   : num_threads_(num_threads), num_cores_(num_cores) {
+  do_permutations_ = true;
+  solve_economy_ = true;
   cholmod_start(&cc_);
   cc_.itype = CHOLMOD_LONG;
   cc_.error_handler = &LogError;
@@ -99,7 +101,8 @@ size_t SparseSystemDouble::TimeSolve(
 
   // Time solve.
   const auto start = std::chrono::high_resolution_clock::now();
-  cholmod_dense* x = SuiteSparseQR<double>(A_, b_, &cc_);
+  cholmod_dense* x = SuiteSparseQR<double>(SPQR_ORDERING_FIXED,
+                                           SPQR_DEFAULT_TOL, A_, b_, &cc_);
   const auto stop = std::chrono::high_resolution_clock::now();
   const size_t time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               stop - start).count();
@@ -203,17 +206,29 @@ size_t SparseSystemDouble::TimeQrDecomposition(
 
   const auto start = std::chrono::high_resolution_clock::now();
   // Wrapper function.
-  SuiteSparseQR<double>(SPQR_ORDERING_DEFAULT, SPQR_DEFAULT_TOL, A_->ncol,
-                        A_, b_, &C, &R, &p, &cc_);
+//   SuiteSparseQR<double>(SPQR_ORDERING_FIXED, SPQR_DEFAULT_TOL, A_->ncol,
+//                         A_, b_, &C, &R, &p, &cc_);
 //   // Actual function call skipping the wrapper function.
-//   SuiteSparseQR<double>(SPQR_ORDERING_DEFAULT, SPQR_DEFAULT_TOL,
-//                         A_->ncol,           // Rows of Z and R to return.
-//                         0,                  // C = Q'*b.
-//                         A_, NULL, b_,       // Input.
-//                         NULL, &C, &R, &p, NULL, NULL, NULL, &cc_); // Output.
+  SuiteSparseQR<double>((do_permutations_) ?
+                            SPQR_ORDERING_DEFAULT : SPQR_ORDERING_FIXED,
+                        SPQR_DEFAULT_TOL,
+                        (solve_economy_) ? 0 : A_->ncol,
+                        0,                  // Solve C = Q' * B.
+                        A_,
+                        NULL, b_,           // b_sparse, b_dense.
+                        NULL, &C,           // z_sparse, z_dense.
+                        &R,                 // R-factor.
+                        &p,                 // Permutation vector.
+                        nullptr, nullptr, nullptr,  // Unused output.
+                        &cc_);
+
+
   const auto stop = std::chrono::high_resolution_clock::now();
   const auto time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               stop - start).count();
+  LOG(INFO) << "Solve economy: " << solve_economy_;
+  LOG(INFO) << "R size: (" << R->nrow << " x " << R->ncol << ")";
+  LOG(INFO) << "C size: (" << C->nrow << " x " << C->ncol << ")";
 //   LOG(INFO) << "R nnnz: " << R->nz;
 //   LOG(INFO) << "R max_nnnz: " << R->nzmax;
 
@@ -266,26 +281,38 @@ size_t SparseSystemDouble::TimeQrDecomposition(
 //     cholmod_l_free_dense(&res, &cc_);
 //   }
 
-
+  LOG(WARNING) << " !!TEST!!  SPQR_ORDERING_DEFAULT: " << SPQR_ORDERING_DEFAULT;
+  LOG(WARNING) << " !!TEST!!  SPQR_ORDERING_FIXED: " << SPQR_ORDERING_FIXED;
 
   CHECK_EQ(b_->ncol, C->ncol);
   CHECK_EQ(A_->ncol, C->nrow);
 
   // Fill R triplets.
+  if (R != nullptr) {
   CholmodSparseToTriplet(R, R_triplets);
+  } else {
+    LOG(WARNING) << "R is nullptr ?!";
+  }
 
   // Fill QT_b.
   QT_b->clear();
-  QT_b->reserve(C->nrow);
-  for (size_t row_i = 0; row_i < C->nrow; ++row_i) {
-    QT_b->push_back(static_cast<double *>(C->x)[row_i]);
+  if (C != nullptr) {
+    QT_b->reserve(C->nrow);
+    for (size_t row_i = 0; row_i < C->nrow; ++row_i) {
+      QT_b->push_back(static_cast<double *>(C->x)[row_i]);
+    }
   }
+  LOG(INFO) << "QtB vecotr size: " << QT_b->size();
 
   // Set permutation.
   permutation->clear();
   permutation->reserve(A_->ncol);
   for (size_t perm_i = 0; perm_i < A_->ncol; ++perm_i) {
-    permutation->push_back(p[perm_i]);
+    if (p == nullptr) {
+      permutation->push_back(perm_i);
+    } else {
+      permutation->push_back(p[perm_i]);
+    }
   }
 
   cholmod_l_free(A_->ncol, sizeof(SuiteSparse_long), p, &cc_);

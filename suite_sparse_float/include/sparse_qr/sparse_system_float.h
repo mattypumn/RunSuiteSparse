@@ -25,15 +25,32 @@ class SparseSystemFloat{
                   std::vector<float>* residual_norms = nullptr);
 
   size_t SystemSolve(const std::vector<float>& rhs, std::vector<float>* x);
+
+  size_t TimeQrDecomposition(std::vector<float>* QT_b,
+                             std::vector<Triplet>* R_triplets,
+                             std::vector<size_t>* permutation);
+
+  void SetPermutations(bool do_permutations) {
+    do_permutations_ = do_permutations;
+  }
+
+  void SetEconomic(bool econ) {
+    solve_economy_ = econ;
+  }
+
  private:
   // Purposefully hidden constructor.
   SparseSystemFloat();
 
 
+  void CholmodSparseToTriplet(cholmod_sparse* A, std::vector<Triplet>* triplet);
+  
   cholmod_dense* SolveQR();
   cholmod_sparse* A_;
   cholmod_dense* b_;
   cholmod_common cc_;
+  bool do_permutations_;
+  bool solve_economy_;
 };
 
 }  // namespace sparse_qr.

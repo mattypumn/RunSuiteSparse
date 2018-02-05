@@ -8,6 +8,10 @@
 
 namespace eigen_helpers {
 
+bool dlmread(const std::string& file_name, Eigen::MatrixXd* matrix);
+void dlmwrite(const std::string& outfile, const Eigen::MatrixXd& mat,
+              const std::string& delim = ",");
+
 void WriteAscii(std::ostream& os, const Eigen::MatrixXd& mat);
 void WriteBinary(std::ostream& os, const Eigen::MatrixXd& mat);
 

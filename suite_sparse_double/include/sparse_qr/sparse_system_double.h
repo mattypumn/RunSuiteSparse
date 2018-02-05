@@ -6,6 +6,7 @@
 #include <Eigen/Sparse>
 #include <tuple>
 #include <vector>
+#include <boost/graph/graph_concepts.hpp>
 
 #include <SuiteSparseQR.hpp>
 
@@ -41,6 +42,14 @@ class SparseSystemDouble{
                              std::vector<Triplet>* R_triplets,
                              std::vector<size_t>* permutation);
 
+  void SetPermutations(bool do_permutations) {
+    do_permutations_ = do_permutations;
+  }
+
+  void SetEconomic(bool econ) {
+    solve_economy_ = econ;
+  }
+
  private:
   SparseSystemDouble();
 
@@ -52,11 +61,10 @@ class SparseSystemDouble{
 
   const size_t num_threads_;
   const size_t num_cores_;
+  bool do_permutations_;
+  bool solve_economy_;  // R is square and QtB has n rows.
 };
 
 }  // namespace sparse_qr.
 
 #endif  // MARS_SPARSE_SYSTEM_DOUBLE
-
-
-

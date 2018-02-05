@@ -35,3 +35,7 @@ add_executable(compare_qr_float src/compare_qr_float.cc)
 target_link_libraries(compare_qr_float glog
                                        sparse_system_float
                                        suitesparseconfig)
+target_link_libraries(test_spqr_float fs_utils
+                                      glog
+                                      sparse_system_double
+                                      eigen_helpers)

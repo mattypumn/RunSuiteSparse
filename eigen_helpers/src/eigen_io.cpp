@@ -1,6 +1,7 @@
 
 #include <exception>
 #include <fstream>
+#include <iomanip>
 
 #include <Eigen/Core>
 #include <glog/logging.h>
@@ -9,6 +10,79 @@
 #include "../include/eigen_helpers/stl_io.h"
 
 namespace eigen_helpers {
+
+bool dlmread(const std::string& file_name, Eigen::MatrixXd* matrix) {
+  std::ifstream file;
+  file.open(file_name);
+
+  if (!file.is_open()) {
+    return false;
+  }
+
+  std::vector<std::vector<double>> rows;
+
+  while (!file.eof()) {
+    std::string line;
+    std::getline(file, line);
+    size_t cols = 0;
+    std::stringstream stream(line);
+
+    rows.push_back(std::vector<double>());
+    while (!stream.eof()) {
+      double value;
+
+      if(stream.peek() == ',') {
+        stream.ignore();
+      }
+
+      if (!(stream >> value)) {
+        break;
+      }
+      rows.back().push_back(value);
+      cols++;
+    }
+
+    if (!cols) {
+      rows.pop_back();
+    }
+
+    if( rows.size() > 1 ) {
+      // Check we have the same number of columns
+      if (rows[rows.size()-2].size() != rows[rows.size()-1].size()) {
+        return false;
+      }
+    }
+  }
+
+  size_t num_rows = rows.size();
+  size_t num_cols = rows[0].size();
+
+  matrix->resize(num_rows, num_cols);
+
+  for (size_t i = 0; i < num_rows; i++) {
+    for (size_t j = 0; j < num_cols; j++) {
+      (*matrix)(i, j) = rows[i][j];
+    }
+  }
+
+  return true;
+}
+
+void dlmwrite(
+    const std::string& outfile, const Eigen::MatrixXd& mat,
+    const std::string& delim) {
+  std::ofstream os(outfile.c_str());
+  if (!os.is_open()) {
+    LOG(FATAL) << "Could not write to file: " << outfile;
+  }
+  const int cols = mat.cols(), rows = mat.rows();
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      os << std::setprecision(15) << mat(i,j) <<
+            ((j + 1 == cols) ? "\n" : delim);
+    }
+  }
+}
 
 void WriteAscii(std::ostream& os, const Eigen::MatrixXd& mat)
 {

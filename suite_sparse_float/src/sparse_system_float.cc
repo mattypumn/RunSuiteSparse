@@ -21,6 +21,8 @@ SparseSystemFloat::SparseSystemFloat(){
 SparseSystemFloat::SparseSystemFloat(
     const size_t& rows, const size_t& cols,
     const std::vector<Triplet>& vals){
+  solve_economy_ = false;
+  do_permutations_ = true;
   cholmod_start(&cc_);
   cc_.error_handler = &LogError;
   cc_.itype = CHOLMOD_LONG;
@@ -132,11 +134,103 @@ size_t SparseSystemFloat::SystemSolve(
 cholmod_dense* SparseSystemFloat::SolveQR() {
   return SuiteSparseQR <float> (A_, b_, &cc_);
 }
-//
-// cholmod_dense* SparseSystemFloat::sparse_qr(
-//     cholmod_sparse* A, cholmod_dense* b, cholmod_common* cc) {
-//   return SuiteSparseQR <float> (A, b, cc);
-// }
+
+
+size_t SparseSystemFloat::TimeQrDecomposition(
+    std::vector<float>* QT_b, std::vector<Triplet>* R_triplets,
+    std::vector<size_t>* permutation) {
+  CHECK_NOTNULL(b_);
+  CHECK_NOTNULL(A_);
+  CHECK_NOTNULL(QT_b);
+  CHECK_NOTNULL(R_triplets);
+  CHECK_NOTNULL(permutation);
+
+  cholmod_dense *C = nullptr;  // Q' * b.
+  cholmod_sparse *R = nullptr;  // R decomposition.
+  SuiteSparse_long *p = nullptr;  // Permutation vector.
+
+  const auto start = std::chrono::high_resolution_clock::now();
+  // Wrapper function.
+//   SuiteSparseQR<double>(SPQR_ORDERING_FIXED, SPQR_DEFAULT_TOL, A_->ncol,
+//                         A_, b_, &C, &R, &p, &cc_);
+//   // Actual function call skipping the wrapper function.
+  SuiteSparseQR<double>((do_permutations_) ?
+                            SPQR_ORDERING_DEFAULT : SPQR_ORDERING_FIXED,
+                        SPQR_DEFAULT_TOL,
+                        (solve_economy_) ? 0 : A_->ncol,
+                        0,                  // Solve C = Q' * B.
+                        A_,
+                        NULL, b_,           // b_sparse, b_dense.
+                        NULL, &C,           // z_sparse, z_dense.
+                        &R,                 // R-factor.
+                        &p,                 // Permutation vector.
+                        nullptr, nullptr, nullptr,  // Unused output.
+                        &cc_);
+
+
+  const auto stop = std::chrono::high_resolution_clock::now();
+  const auto time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                              stop - start).count();
+  LOG(INFO) << "Solve economy: " << solve_economy_;
+  LOG(INFO) << "R size: (" << R->nrow << " x " << R->ncol << ")";
+  LOG(INFO) << "C size: (" << C->nrow << " x " << C->ncol << ")";
+
+  CHECK_EQ(b_->ncol, C->ncol);
+  CHECK_EQ(A_->ncol, C->nrow);
+
+  // Fill R triplets.
+  if (R != nullptr) {
+  CholmodSparseToTriplet(R, R_triplets);
+  } else {
+    LOG(WARNING) << "R is nullptr ?!";
+  }
+
+  // Fill QT_b.
+  QT_b->clear();
+  if (C != nullptr) {
+    QT_b->reserve(C->nrow);
+    for (size_t row_i = 0; row_i < C->nrow; ++row_i) {
+      QT_b->push_back(static_cast<double *>(C->x)[row_i]);
+    }
+  }
+  LOG(INFO) << "QtB vecotr size: " << QT_b->size();
+
+  // Set permutation.
+  permutation->clear();
+  permutation->reserve(A_->ncol);
+  for (size_t perm_i = 0; perm_i < A_->ncol; ++perm_i) {
+    if (p == nullptr) {
+      permutation->push_back(perm_i);
+    } else {
+      permutation->push_back(p[perm_i]);
+    }
+  }
+
+  cholmod_l_free(A_->ncol, sizeof(SuiteSparse_long), p, &cc_);
+  cholmod_l_free_dense(&C, &cc_);
+  cholmod_l_free_sparse(&R, &cc_);
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
+
+  return time_ns;
+}
+
+void SparseSystemFloat::CholmodSparseToTriplet(
+    cholmod_sparse* A, std::vector<Triplet>* triplets) {
+  triplets->clear();
+  cholmod_triplet *trip = cholmod_l_sparse_to_triplet(A, &cc_);
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
+  const size_t nnz = cholmod_l_nnz(A, &cc_);
+  triplets->reserve(trip->nnz);
+  for (size_t iter = 0; iter < nnz; ++iter) {
+    triplets->emplace_back(static_cast<size_t *>(trip->i)[iter],
+                           static_cast<size_t *>(trip->j)[iter],
+                           static_cast<float *>(trip->x)[iter]);
+  }
+
+  cholmod_l_free_triplet(&trip, &cc_);
+  CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
+}
+
 
 }  // namespace sparse_qr.
 

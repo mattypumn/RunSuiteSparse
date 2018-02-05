@@ -11,15 +11,16 @@
 
 
 #include "../../eigen_helpers/include/eigen_helpers/eigen_io.h"
-#include "../include/sparse_qr/sparse_system_double.h"
+#include "../include/sparse_qr/sparse_system_float.h"
 #include "../../fs_utils/include/fs_utils/fs_utils.h"
 
 constexpr size_t kNumSolves = 5;
 constexpr bool kLoadTranspose = true;
 constexpr bool kDoThinQR = true;
+constexpr bool kAllowPermutations = false;
 constexpr double kNanoToSeconds = 1e-9;
 
-typedef sparse_qr::SparseSystemDouble::Triplet SparseSystemTriplet;
+typedef sparse_qr::SparseSystemFloat::Triplet SparseSystemTriplet;
 
 void ShowTimeStats(std::vector<double>& times_seconds) {
   double total_time = 0.;

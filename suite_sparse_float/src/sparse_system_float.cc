@@ -59,9 +59,6 @@ void SparseSystemFloat::SetWithTuples(const std::vector<Triplet>& vals) {
   LOG(FATAL) << "NOT YET IMPLEMENTED";
 }
 
-void SparseSystemFloat::SetRhs(std::vector<float> rhs) {
-  LOG(FATAL) << "Not yet implemented";
-}
 
 size_t solve_counter = 0;
 size_t SparseSystemFloat::TimeSolve(float* residual_norm) {
@@ -151,10 +148,10 @@ size_t SparseSystemFloat::TimeQrDecomposition(
 
   const auto start = std::chrono::high_resolution_clock::now();
   // Wrapper function.
-//   SuiteSparseQR<double>(SPQR_ORDERING_FIXED, SPQR_DEFAULT_TOL, A_->ncol,
+//   SuiteSparseQR<float>(SPQR_ORDERING_FIXED, SPQR_DEFAULT_TOL, A_->ncol,
 //                         A_, b_, &C, &R, &p, &cc_);
 //   // Actual function call skipping the wrapper function.
-  SuiteSparseQR<double>((do_permutations_) ?
+  SuiteSparseQR<float>((do_permutations_) ?
                             SPQR_ORDERING_DEFAULT : SPQR_ORDERING_FIXED,
                         SPQR_DEFAULT_TOL,
                         (solve_economy_) ? 0 : A_->ncol,
@@ -190,7 +187,7 @@ size_t SparseSystemFloat::TimeQrDecomposition(
   if (C != nullptr) {
     QT_b->reserve(C->nrow);
     for (size_t row_i = 0; row_i < C->nrow; ++row_i) {
-      QT_b->push_back(static_cast<double *>(C->x)[row_i]);
+      QT_b->push_back(static_cast<float *>(C->x)[row_i]);
     }
   }
   LOG(INFO) << "QtB vecotr size: " << QT_b->size();
@@ -231,6 +228,12 @@ void SparseSystemFloat::CholmodSparseToTriplet(
   CHECK_EQ(cc_.status, CHOLMOD_OK) << " cholmod status: " << cc_.status;
 }
 
+void SparseSystemFloat::SetRhs(const std::vector<float>& rhs) {
+  CHECK_EQ(b_->nrow, rhs.size()) << " vector of incorrect size for system Ax=b";
+  for (size_t val_i = 0; val_i < rhs.size(); ++val_i) {
+    static_cast<float *>(b_->x)[val_i] = rhs[val_i];
+  }
+}
 
 }  // namespace sparse_qr.
 

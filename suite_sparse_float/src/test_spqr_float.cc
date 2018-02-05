@@ -112,12 +112,20 @@ int main (int argc, char** argv) {
   LOG(INFO) << "Loaded sparse matrix: " << sparse_filepath;
   LOG(INFO) << "J size: (" << J.rows() << " x " << J.cols() << ")";
 
-  Eigen::MatrixXd B;
-  const bool successful_read = eigen_helpers::dlmread(rhs_filepath, &B);
+  Eigen::MatrixXd B_double;
+  Eigen::MatrixXf B_float;
+
+  const bool successful_read = eigen_helpers::dlmread(rhs_filepath, &B_double);
   if (!successful_read) {
     LOG(FATAL) << "Could not read RHS matrix file: " << rhs_filepath;
   }
   LOG(INFO) << "Loaded rhs: " << rhs_filepath;
+  B_float.resize(B_double.rows(), B_double.cols());
+  for (int i = 0; i < B_double.rows(); ++i) {
+    for (int j = 0; j < B_double.cols(); ++j) {
+      B_float(i,j) = static_cast<float>(B_double(i, j));
+    }
+  }
 
   if (!fsutils::CheckDirectoryExists(output_directory)) {
     LOG(FATAL) << "Cannot locate output directory: " << output_directory;
@@ -127,32 +135,32 @@ int main (int argc, char** argv) {
   /////////////////////////////////////////////
   //       Solve with SuiteSparse.           //
   /////////////////////////////////////////////
-  std::vector<sparse_qr::SparseSystemDouble::Triplet> mat_triplets;
-  std::vector<double> Qt_b_vec;
+  std::vector<SparseSystemTriplet> mat_triplets;
+  std::vector<float> Qt_b_vec;
   std::vector<SparseSystemTriplet> R_trip;
   std::vector<size_t> perm;
   std::vector<double> times_s;
   Eigen::MatrixXd Qt_B_matrix;
   if (kDoThinQR) {
-    Qt_B_matrix.resize(J.cols(), B.cols());
+    Qt_B_matrix.resize(J.cols(), B_float.cols());
   } else {
-    Qt_B_matrix.resize(B.rows(), B.cols());
+    Qt_B_matrix.resize(B_float.rows(), B_float.cols());
   }
   Eigen::VectorXd p_vec(J.cols());
   EigenSparseToTriplets(J, &mat_triplets);
   LOG(INFO) << "Starting solves.";
   for (size_t test_i = 0; test_i < kNumSolves; ++test_i) {
-    for (int system_i = 0; system_i < B.cols(); ++system_i) {
+    for (int system_i = 0; system_i < B_float.cols(); ++system_i) {
       Qt_b_vec.clear();
       R_trip.clear();
       perm.clear();
-      Eigen::VectorXd b_col = B.col(system_i);
-      std::vector<double> b_vec;
+      Eigen::VectorXf b_col = B_float.col(system_i);
+      std::vector<float> b_vec;
       for (int b_elem_i = 0; b_elem_i < b_col.rows(); ++b_elem_i) {
          b_vec.emplace_back(b_col(b_elem_i));
       }
-      sparse_qr::SparseSystemDouble* system_solver =
-            new sparse_qr::SparseSystemDouble(J.rows(), J.cols(), mat_triplets);
+      sparse_qr::SparseSystemFloat* system_solver =
+            new sparse_qr::SparseSystemFloat(J.rows(), J.cols(), mat_triplets);
       system_solver->SetPermutations(false);
       system_solver->SetEconomic(true);
       system_solver->SetRhs(b_vec);

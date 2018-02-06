@@ -192,7 +192,7 @@ void SparseSystemDouble::CholmodSparseToTriplet(
 // }
 
 size_t SparseSystemDouble::TimeQrDecomposition(
-    std::vector<float>* QT_b, std::vector<Triplet>* R_triplets,
+    std::vector<double>* QT_b, std::vector<Triplet>* R_triplets,
     std::vector<size_t>* permutation) {
   CHECK_NOTNULL(b_);
   CHECK_NOTNULL(A_);

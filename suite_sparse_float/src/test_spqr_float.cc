@@ -15,7 +15,7 @@
 #include "../../fs_utils/include/fs_utils/fs_utils.h"
 
 constexpr size_t kNumSolves = 5;
-constexpr bool kLoadTranspose = true;
+constexpr bool kLoadTranspose = false;
 constexpr bool kDoThinQR = true;
 constexpr bool kAllowPermutations = false;
 constexpr double kNanoToSeconds = 1e-9;
@@ -47,7 +47,8 @@ void EigenSparseToTriplets(
   triplets->reserve(nnz);
   for (auto k = 0; k < S.outerSize(); k++) {
     for (Eigen::SparseMatrix<double>::InnerIterator it(S,k); it; ++it) {
-      triplets->emplace_back(it.row(), it.col(), it.value());
+      triplets->emplace_back(it.row(), it.col(),
+                             static_cast<float>(it.value()));
     }
   }
 }
@@ -62,7 +63,7 @@ void TripletsToEigenSparse(
   for (const auto& triplet : triplets) {
     const size_t row = std::get<0>(triplet),
                  col = std::get<1>(triplet);
-    const double val = std::get<2>(triplet);
+    const double val = static_cast<double>(std::get<2>(triplet));
     CHECK_GE(row, 0);
     CHECK_LT(row, rows);
     CHECK_GE(col, 0);
@@ -99,6 +100,11 @@ int main (int argc, char** argv) {
   LOG(INFO) << "Sparse matrix file: " << sparse_filepath;
   LOG(INFO) << "rhs: "  << rhs_filepath;
   LOG(INFO) << "Output directory: " << output_directory;
+
+
+
+
+
 
   /////////////////////////////////////////////
   //       Load the Data.                    //
@@ -186,11 +192,11 @@ int main (int argc, char** argv) {
   const std::string name_ext = fsutils::GetFileNameFromPath(sparse_filepath);
   const std::string mat_name = fsutils::RemoveExtensionFromFileName(name_ext);
   const std::string outfile_R = output_directory + "/" + mat_name +
-                                "_R_double.dat";
+                                "_R_float.dat";
   const std::string outfile_QtB = output_directory + "/" + mat_name +
-                                  "_QtB_double.txt";
+                                  "_QtB_float.txt";
   const std::string outfile_perm = output_directory + "/" + mat_name +
-                                   "_perm_double.txt";
+                                   "_perm_float.txt";
 
   LOG(INFO) << "Matrix name with extension: " << name_ext;
   LOG(INFO) << "Matrix Name: " << mat_name;
@@ -200,7 +206,7 @@ int main (int argc, char** argv) {
 
   Eigen::SparseMatrix<double> R_sparse;
   TripletsToEigenSparse(R_trip, J.cols(), J.cols(), &R_sparse);
-    eigen_helpers::WriteSparseMatrix(outfile_R, R_sparse);
+  eigen_helpers::WriteSparseMatrix(outfile_R, R_sparse);
   LOG(INFO) << "Saved R matrix.";
   LOG(INFO) << "Q'* B size: (" << Qt_B_matrix.rows() << " x " <<
               Qt_B_matrix.cols() << ")";

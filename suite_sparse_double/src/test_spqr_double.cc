@@ -15,7 +15,7 @@
 #include "../../fs_utils/include/fs_utils/fs_utils.h"
 
 constexpr size_t kNumSolves = 5;
-constexpr bool kLoadTranspose = true;
+constexpr bool kLoadTranspose = false;
 constexpr bool kDoThinQR = true;
 constexpr double kNanoToSeconds = 1e-9;
 

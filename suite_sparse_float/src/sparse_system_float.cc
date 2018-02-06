@@ -236,4 +236,3 @@ void SparseSystemFloat::SetRhs(const std::vector<float>& rhs) {
 }
 
 }  // namespace sparse_qr.
-

@@ -15,7 +15,6 @@
 #include "../../fs_utils/include/fs_utils/fs_utils.h"
 
 constexpr size_t kNumSolves = 5;
-constexpr bool kLoadTranspose = false;
 constexpr bool kDoThinQR = true;
 constexpr double kNanoToSeconds = 1e-9;
 
@@ -86,15 +85,17 @@ int main (int argc, char** argv) {
   FLAGS_alsologtostderr = true;
   FLAGS_colorlogtostderr = true;
 
-  if (argc != 4) {
+  if (argc != 5) {
     ShowUsage(argv[0]);
     return 0;
   }
 
-  const std::string sparse_filepath(argv[1]);
-  const std::string rhs_filepath(argv[2]);
-  const std::string output_directory(argv[3]);
+  const bool load_transpose = std::string(argv[1]).compare("0") != 0;
+  const std::string sparse_filepath(argv[2]);
+  const std::string rhs_filepath(argv[3]);
+  const std::string output_directory(argv[4]);
 
+  LOG(INFO) << "load transpose: " << (load_transpose ? "true" : "false");
   LOG(INFO) << "Sparse matrix file: " << sparse_filepath;
   LOG(INFO) << "rhs: "  << rhs_filepath;
   LOG(INFO) << "Output directory: " << output_directory;
@@ -104,10 +105,10 @@ int main (int argc, char** argv) {
   /////////////////////////////////////////////
   const Eigen::SparseMatrix<double> J_t =
         eigen_helpers::ReadSparseMatrix(sparse_filepath);
-  if (kLoadTranspose) {
+  if (load_transpose) {
     LOG(WARNING) << "Loading the transpose of sparse matrix.";
   }
-  const Eigen::SparseMatrix<double> J = kLoadTranspose ? J_t.transpose() : J_t;
+  const Eigen::SparseMatrix<double> J = load_transpose ? J_t.transpose() : J_t;
   LOG(INFO) << "Loaded sparse matrix: " << sparse_filepath;
   LOG(INFO) << "J size: (" << J.rows() << " x " << J.cols() << ")";
 

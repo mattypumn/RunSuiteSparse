@@ -226,9 +226,9 @@ size_t SparseSystemDouble::TimeQrDecomposition(
   const auto stop = std::chrono::high_resolution_clock::now();
   const auto time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                               stop - start).count();
-  LOG(INFO) << "Solve economy: " << solve_economy_;
-  LOG(INFO) << "R size: (" << R->nrow << " x " << R->ncol << ")";
-  LOG(INFO) << "C size: (" << C->nrow << " x " << C->ncol << ")";
+//   LOG(INFO) << "Solve economy: " << solve_economy_;
+//   LOG(INFO) << "R size: (" << R->nrow << " x " << R->ncol << ")";
+//   LOG(INFO) << "C size: (" << C->nrow << " x " << C->ncol << ")";
 //   LOG(INFO) << "R nnnz: " << R->nz;
 //   LOG(INFO) << "R max_nnnz: " << R->nzmax;
 
@@ -281,9 +281,6 @@ size_t SparseSystemDouble::TimeQrDecomposition(
 //     cholmod_l_free_dense(&res, &cc_);
 //   }
 
-  LOG(WARNING) << " !!TEST!!  SPQR_ORDERING_DEFAULT: " << SPQR_ORDERING_DEFAULT;
-  LOG(WARNING) << " !!TEST!!  SPQR_ORDERING_FIXED: " << SPQR_ORDERING_FIXED;
-
   CHECK_EQ(b_->ncol, C->ncol);
   CHECK_EQ(A_->ncol, C->nrow);
 
@@ -302,7 +299,6 @@ size_t SparseSystemDouble::TimeQrDecomposition(
       QT_b->push_back(static_cast<double *>(C->x)[row_i]);
     }
   }
-  LOG(INFO) << "QtB vecotr size: " << QT_b->size();
 
   // Set permutation.
   permutation->clear();

@@ -6,7 +6,6 @@
 #include <Eigen/Sparse>
 #include <tuple>
 #include <vector>
-#include <boost/graph/graph_concepts.hpp>
 
 #include <SuiteSparseQR.hpp>
 

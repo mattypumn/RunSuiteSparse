@@ -12,7 +12,7 @@ set(CMAKE_CXX_FLAGS "-O3")
 #                               For Doubles                                    #
 ################################################################################
 
-set(SUITE_SPARSE_DOUBLE /home/mattp/Libraries/SuiteSparseDouble/)
+set(SUITE_SPARSE_DOUBLE /home/matt/Libraries/SuiteSparseDouble/)
 
 ## For tbb.
 # set(SUITE_SPARSE_DOUBLE /usr/local/google/home/mpoulter/Downloads/SuiteSparse_Tbb/)

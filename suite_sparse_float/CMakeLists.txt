@@ -10,7 +10,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #                               SPQR Example                                   #
 ################################################################################
 
-set(SUITE_SPARSE_FLOAT /home/mattp/Libraries/SuiteSparseFloat/)
+set(SUITE_SPARSE_FLOAT /home/matt/Libraries/SuiteSparseFloat/)
 
 link_directories(${SUITE_SPARSE_FLOAT}/lib)
 add_executable(spqr_user_guide_example src/spqr_user_guide_example.cc)
@@ -29,7 +29,7 @@ add_library(sparse_system_float src/sparse_system_float.cc)
 target_include_directories(sparse_system_float PUBLIC
                            ${SUITE_SPARSE_FLOAT}/include
                            ${EIGEN3_INCLUDE_DIR})
-target_link_libraries(sparse_system_float cholmod spqr)
+target_link_libraries(sparse_system_float cholmod spqr glog)
 
 add_executable(compare_qr_float src/compare_qr_float.cc)
 target_link_libraries(compare_qr_float glog
